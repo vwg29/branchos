@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(139,124,246,0.25), transparent 60%),
+    radial-gradient(900px 500px at 0% 10%, rgba(56,225,214,0.18), transparent 55%),
+    #070A15;
+  color: #E8ECF6;
+  font-family: var(--font-sans);
+}
+
+/* Ambient floating blobs behind glass surfaces. */
+.bg-blobs::before,
+.bg-blobs::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  filter: blur(80px);
+  opacity: 0.5;
+  border-radius: 999px;
+}
+.bg-blobs::before {
+  width: 40vw; height: 40vw;
+  background: #8B7CF6;
+  top: -10vw; inset-inline-end: -10vw;
+}
+.bg-blobs::after {
+  width: 32vw; height: 32vw;
+  background: #38E1D6;
+  bottom: -8vw; inset-inline-start: -8vw;
+}
+
+/* Glass surface primitive. */
+.glass-surface {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

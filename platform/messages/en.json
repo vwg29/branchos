@@ -1,0 +1,73 @@
+{
+  "brand": { "name": "BranchOS", "tagline": "The OS for branches and agencies" },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About",
+    "login": "Sign in",
+    "start": "Start free"
+  },
+  "landing": {
+    "heroTitle": "Run every branch from one place",
+    "heroSubtitle": "An isolated workspace per company: branches, regions, employees, tasks, performance, and billing — with strict tenant isolation.",
+    "ctaPrimary": "Start free",
+    "ctaSecondary": "See pricing",
+    "feature1Title": "Strict company isolation",
+    "feature1Body": "Every company lives in its own space. No data ever leaks between tenants.",
+    "feature2Title": "Precise roles and permissions",
+    "feature2Body": "Give each team exactly what it needs, nothing more.",
+    "feature3Title": "Live performance metrics",
+    "feature3Body": "Track each branch and region moment to moment."
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "noAccount": "No account yet?",
+    "createAccount": "Create one",
+    "invalid": "Invalid credentials"
+  },
+  "onboarding": {
+    "title": "Let's set up your workspace",
+    "step": "Step",
+    "of": "of",
+    "company": "Company name",
+    "slug": "Workspace handle",
+    "adminName": "Your name",
+    "adminEmail": "Your email",
+    "adminPassword": "Password",
+    "choosePlan": "Choose a plan",
+    "review": "Review",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Create workspace",
+    "creating": "Creating..."
+  },
+  "app": {
+    "dashboard": "Dashboard",
+    "branches": "Branches",
+    "agencies": "Agencies",
+    "regions": "Regions",
+    "employees": "Employees",
+    "roles": "Roles",
+    "tasks": "Tasks",
+    "announcements": "Announcements",
+    "performance": "Performance",
+    "documents": "Documents",
+    "settings": "Settings",
+    "billing": "Billing",
+    "logout": "Sign out",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "empty": "Nothing here yet",
+    "emptyHint": "Start by adding your first item.",
+    "loading": "Loading...",
+    "error": "Something went wrong"
+  },
+  "pricing": { "title": "Plans for every stage", "perMonth": "/ month", "free": "Free", "choose": "Choose plan" },
+  "about": { "title": "About BranchOS", "body": "A multi-tenant platform for managing branch- and agency-based companies." },
+  "errors": { "unknown": "Unknown error", "retry": "Try again", "goHome": "Back home" }
+}

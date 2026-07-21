@@ -1,0 +1,273 @@
+// BranchOS Prisma schema.
+// RULE (setup guide 5.6): NO Arabic text anywhere in this file. English comments only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Platform-level models (NOT tenant-scoped). Managed by the platform admin.
+// ---------------------------------------------------------------------------
+
+model Plan {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  priceMonthly Int      @default(0) // in minor currency units (e.g. halalas/cents)
+  maxBranches  Int      @default(1)
+  maxEmployees Int      @default(5)
+  features     String[] @default([])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  tenants      Tenant[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "branches:write"
+  group       String   @default("general")
+  description String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Tenant root. Every scoped model below points back to a Tenant via tenantId.
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  status    TenantStatus @default(TRIAL)
+  planId    String?
+  plan      Plan?        @relation(fields: [planId], references: [id])
+  createdAt DateTime     @default(now())
+
+  users         User[]
+  roles         Role[]
+  regions       Region[]
+  branches      Branch[]
+  agencies      Agency[]
+  employees     Employee[]
+  tasks         Task[]
+  announcements Announcement[]
+  metrics       PerformanceMetric[]
+  documents     Document[]
+  invoices      Invoice[]
+  notifications Notification[]
+  settings      TenantSettings?
+}
+
+model TenantSettings {
+  id           String  @id @default(cuid())
+  tenantId     String  @unique
+  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timezone     String  @default("Asia/Riyadh")
+  currency     String  @default("SAR")
+  defaultLocale String @default("ar")
+  brandColor   String  @default("#38E1D6")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  permissions String[] @default([]) // list of Permission.key values
+  isOwner     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  users       User[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email        String
+  name         String
+  passwordHash String
+  roleId       String?
+  role         Role?    @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  branches  Branch[]
+  agencies  Agency[]
+
+  @@index([tenantId])
+}
+
+model Branch {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  regionId  String?
+  region    Region?   @relation(fields: [regionId], references: [id])
+  name      String
+  address   String    @default("")
+  phone     String    @default("")
+  createdAt DateTime  @default(now())
+  employees Employee[]
+  tasks     Task[]
+
+  @@index([tenantId])
+}
+
+model Agency {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  regionId  String?
+  region    Region?   @relation(fields: [regionId], references: [id])
+  name      String
+  contact   String    @default("")
+  createdAt DateTime  @default(now())
+  employees Employee[]
+  tasks     Task[]
+
+  @@index([tenantId])
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  agencyId  String?
+  agency    Agency?  @relation(fields: [agencyId], references: [id])
+  name      String
+  email     String   @default("")
+  position  String   @default("")
+  createdAt DateTime @default(now())
+  tasks     Task[]
+
+  @@index([tenantId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title       String
+  description String     @default("")
+  status      TaskStatus @default(TODO)
+  assigneeId  String?
+  assignee    Employee?  @relation(fields: [assigneeId], references: [id])
+  branchId    String?
+  branch      Branch?    @relation(fields: [branchId], references: [id])
+  agencyId    String?
+  agency      Agency?    @relation(fields: [agencyId], references: [id])
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([tenantId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @default("")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model PerformanceMetric {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId  String?
+  metric    String
+  value     Float    @default(0)
+  period    String   @default("") // e.g. "2026-07"
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  url       String   @default("")
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number    String
+  amount    Int           @default(0)
+  status    InvoiceStatus @default(OPEN)
+  period    String        @default("")
+  createdAt DateTime      @default(now())
+
+  @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
