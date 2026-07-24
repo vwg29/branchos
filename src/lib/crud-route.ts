@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, type ZodTypeAny } from "zod";
-import { requireTenant, hasPermission, type TenantContext } from "@/lib/session";
+import { requireTenant, hasPermission, type TenantContext, isBranch, isAgency } from "@/lib/session";
 
 type Handler<S extends ZodTypeAny> = {
   resource: string; // permission prefix, e.g. "branches"
@@ -19,7 +19,17 @@ export function makeCrudRoute<S extends ZodTypeAny>(h: Handler<S>) {
     if (!hasPermission(guard.ctx, `${h.resource}:read`)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const items = await h.list(guard.ctx);
+    
+    // Branch/Agency users can only see their own branch/agency
+    const ctx = guard.ctx;
+    let items = await h.list(ctx);
+    
+    if (isBranch(ctx)) {
+      items = items.filter((item: any) => item.id === ctx.branchId);
+    } else if (isAgency(ctx)) {
+      items = items.filter((item: any) => item.id === ctx.agencyId);
+    }
+    
     return NextResponse.json({ items });
   }
 
@@ -29,6 +39,12 @@ export function makeCrudRoute<S extends ZodTypeAny>(h: Handler<S>) {
     if (!hasPermission(guard.ctx, `${h.resource}:write`)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    
+    // Branch/Agency users cannot create new branches/agencies
+    if (isBranch(guard.ctx) || isAgency(guard.ctx)) {
+      return NextResponse.json({ error: "Only HQ can create branches/agencies" }, { status: 403 });
+    }
+    
     const parsed = h.schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -43,6 +59,12 @@ export function makeCrudRoute<S extends ZodTypeAny>(h: Handler<S>) {
     if (!hasPermission(guard.ctx, `${h.resource}:write`)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    
+    // Branch/Agency users cannot delete branches/agencies
+    if (isBranch(guard.ctx) || isAgency(guard.ctx)) {
+      return NextResponse.json({ error: "Only HQ can delete branches/agencies" }, { status: 403 });
+    }
+    
     if (!h.remove) {
       return NextResponse.json({ error: "Not supported" }, { status: 405 });
     }

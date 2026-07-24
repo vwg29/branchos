@@ -1,4 +1,4 @@
-// BranchOS Prisma schema.
+// AURA OS Prisma schema.
 // RULE (setup guide 5.6): NO Arabic text anywhere in this file. English comments only.
 
 generator client {
@@ -50,6 +50,22 @@ enum TenantStatus {
   CANCELLED
 }
 
+enum UserType {
+  HQ
+  BRANCH
+  AGENCY
+}
+
+enum Industry {
+  RESTAURANT
+  PHARMACY
+  SUPERMARKET
+  FASHION
+  BEAUTY
+  AUTO_PARTS
+  FURNITURE
+}
+
 // ---------------------------------------------------------------------------
 // Tenant root. Every scoped model below points back to a Tenant via tenantId.
 // ---------------------------------------------------------------------------
@@ -58,6 +74,7 @@ model Tenant {
   id        String       @id @default(cuid())
   slug      String       @unique
   name      String
+  industry  Industry?    // HQ-selected industry
   status    TenantStatus @default(TRIAL)
   planId    String?
   plan      Plan?        @relation(fields: [planId], references: [id])
@@ -76,6 +93,8 @@ model Tenant {
   invoices      Invoice[]
   notifications Notification[]
   settings      TenantSettings?
+  communications Communication[]
+  faqs          FAQ[]
 }
 
 model TenantSettings {
@@ -83,9 +102,10 @@ model TenantSettings {
   tenantId     String  @unique
   tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   timezone     String  @default("Asia/Riyadh")
-  currency     String  @default("SAR")
+  currency     String  @default("IQD")
   defaultLocale String @default("ar")
-  brandColor   String  @default("#38E1D6")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Role {
@@ -103,15 +123,30 @@ model Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  email        String
-  name         String
-  passwordHash String
-  roleId       String?
-  role         Role?    @relation(fields: [roleId], references: [id])
-  createdAt    DateTime @default(now())
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email         String
+  name          String
+  passwordHash  String
+  roleId        String?
+  role          Role?     @relation(fields: [roleId], references: [id])
+  userType      UserType  @default(HQ)
+  branchId      String?
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  // Security fields
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+  createdAt           DateTime @default(now())
+  // Communication relations
+  sentCommunications     Communication[] @relation("SentCommunications")
+  receivedCommunications Communication[] @relation("ReceivedCommunications")
+  dashboardLayout        DashboardLayout?
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -141,6 +176,8 @@ model Branch {
   createdAt DateTime  @default(now())
   employees Employee[]
   tasks     Task[]
+  users     User[]
+  communications Communication[]
 
   @@index([tenantId])
 }
@@ -156,6 +193,8 @@ model Agency {
   createdAt DateTime  @default(now())
   employees Employee[]
   tasks     Task[]
+  users     User[]
+  communications Communication[]
 
   @@index([tenantId])
 }
@@ -270,4 +309,84 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+}
+
+// Communication / Complaints system
+model Communication {
+  id          String             @id @default(cuid())
+  tenantId    String
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromUserId  String?
+  fromUser    User?              @relation("SentCommunications", fields: [fromUserId], references: [id])
+  toUserId    String?
+  toUser      User?              @relation("ReceivedCommunications", fields: [toUserId], references: [id])
+  toBranchId  String?
+  toBranch    Branch?            @relation(fields: [toBranchId], references: [id])
+  toAgencyId  String?
+  toAgency    Agency?            @relation(fields: [toAgencyId], references: [id])
+  subject     String
+  body        String
+  priority    CommunicationPriority @default(MEDIUM)
+  status      CommunicationStatus    @default(OPEN)
+  category    CommunicationCategory  @default(GENERAL)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  resolvedAt  DateTime?
+
+  @@index([tenantId])
+  @@index([toUserId])
+  @@index([toBranchId])
+  @@index([toAgencyId])
+  @@index([status])
+}
+
+enum CommunicationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CommunicationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum CommunicationCategory {
+  GENERAL
+  COMPLAINT
+  ISSUE
+  REQUEST
+  ANNOUNCEMENT
+}
+
+// FAQ system
+model FAQ {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  category  String   @default("general")
+  order     Int      @default(0)
+  isPublished Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+}
+
+// Dashboard customization
+model DashboardLayout {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  layout    Json     // Array of widget configs: { id, type, position: {x, y, w, h}, config }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

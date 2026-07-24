@@ -11,6 +11,7 @@ const schema = z.object({
   adminEmail: z.string().email(),
   adminPassword: z.string().min(8),
   planSlug: z.string().default("trial"),
+  industry: z.enum(["RESTAURANT", "PHARMACY", "SUPERMARKET", "FASHION", "BEAUTY", "AUTO_PARTS", "FURNITURE"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     data: {
       name: input.company,
       slug: input.slug,
+      industry: input.industry,
       status: "TRIAL",
       planId: plan?.id,
       settings: { create: {} },
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
       name: input.adminName,
       passwordHash: await bcrypt.hash(input.adminPassword, 10),
       roleId: ownerRole.id,
+      userType: "HQ",
     },
   });
 

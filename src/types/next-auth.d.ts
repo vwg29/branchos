@@ -9,6 +9,9 @@ declare module "next-auth" {
       tenantSlug: string;
       roleId: string | null;
       permissions: string[];
+      userType: "HQ" | "BRANCH" | "AGENCY";
+      branchId?: string;
+      agencyId?: string;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +21,9 @@ declare module "next-auth" {
     tenantSlug: string;
     roleId: string | null;
     permissions: string[];
+    userType: "HQ" | "BRANCH" | "AGENCY";
+    branchId?: string;
+    agencyId?: string;
   }
 }
 
@@ -28,5 +34,8 @@ declare module "next-auth/jwt" {
     tenantSlug: string;
     roleId: string | null;
     permissions: string[];
+    userType: "HQ" | "BRANCH" | "AGENCY";
+    branchId?: string;
+    agencyId?: string;
   }
 }
